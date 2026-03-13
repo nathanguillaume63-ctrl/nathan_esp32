@@ -1,2 +1,80 @@
-# nathan_esp32
-esp32
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>ESP32 BLE Neopixel</title>
+<style>
+body {
+    font-family: Arial;
+    text-align: center;
+    background: #f4f4f4;
+}
+button, input {
+    font-size: 1.2em;
+    margin: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Commande LED Neopixel (BLE)</h1>
+
+<button onclick="connect()">🔗 Connexion BLE</button><br>
+
+<label>Couleur :</label><br>
+<input type="color" id="colorPicker" value="#ff0000" onchange="sendColor()"><br>
+
+<label>Luminosité :</label><br>
+<input type="range" id="brightness" min="0" max="100" value="50" onchange="sendBrightness()">
+
+<script>
+let device;
+let server;
+let colorChar;
+let brightChar;
+
+// UUIDs (identiques à l'ESP32)
+const SERVICE_UUID = 'c581f0d5-bda0-452c-9012-f4fda0042202';
+const COLOR_UUID   = 'c581f0d5-bda1-452c-9012-f4fda0042202';
+const BRIGHT_UUID  = 'c581f0d5-bda2-452c-9012-f4fda0042202';
+
+async function connect() {
+    device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [SERVICE_UUID] 
+    });
+
+    server = await device.gatt.connect();
+    const service = await server.getPrimaryService(SERVICE_UUID);
+
+    colorChar  = await service.getCharacteristic(COLOR_UUID);
+    brightChar = await service.getCharacteristic(BRIGHT_UUID);
+
+    alert("Connecté à l'ESP32 !");
+}
+
+function sendColor() {
+    if (!colorChar) return;
+
+    const hex = document.getElementById("colorPicker").value;
+    const r = parseInt(hex.substr(1,2),16);
+    const g = parseInt(hex.substr(3,2),16);
+    const b = parseInt(hex.substr(5,2),16);
+
+    const data = new Uint8Array([r, g, b]);
+    colorChar.writeValue(data);
+}
+
+function sendBrightness() {
+    if (!brightChar) return;
+
+    const value = document.getElementById("brightness").value;
+    brightChar.writeValue(new Uint8Array([value]));
+}
+</script>
+
+</body>
+</html>
+
+
